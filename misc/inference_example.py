@@ -104,17 +104,18 @@ def get_prediction(model, image_path, confidence):
     img = transform(img).to(device)
     # after the prediction, image should be processed on cpu
     pred = model([img])
-    pred_score = list(pred[0]['scores'].cpu().detach().numpy())
-    pred_t = [pred_score.index(x) for x in pred_score if x > confidence][-1]
+    pred_scores = list(pred[0]['scores'].cpu().detach().numpy())
+    pred_t = [pred_scores.index(x) for x in pred_scores if x > confidence][-1]
     masks = (pred[0]['masks']>0.5).cpu().squeeze().detach().numpy()
     # print(pred[0]['labels'].numpy().max())
     pred_class = [COCO_CLASS_NAMES[i] for i in list(pred[0]['labels'].cpu().numpy())]
     pred_boxes = [[(i[0], i[1]), (i[2], i[3])] for i in list(pred[0]['boxes'].cpu().detach().numpy())]
     masks = masks[:pred_t+1]
     pred_boxes = pred_boxes[:pred_t+1]
-    pred_class = pred_class[:pred_t+1]
+    pred_classes = pred_class[:pred_t+1]
+    pred_scores = pred_scores[:pred_t+1]
 
-    return masks, pred_boxes, pred_class
+    return masks, pred_boxes, pred_classes, pred_scores
 
 
 def let_it_roll(path):
@@ -137,21 +138,23 @@ def segment_instance(model, input_path, output_path, confidence=0.9, rect_th=2, 
     - masks are given random colours
     - masks are added to the image with ration 1:0.8 with opencv
     """
-    masks, boxes, pred_cls = get_prediction(model, input_path, confidence)
+    masks, boxes, pred_cls, pred_probs = get_prediction(model, input_path, confidence)
     img = cv2.imread(input_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     for i in range(len(masks)):
         _class = pred_cls[i]
         mask = masks[i]
         box = boxes[i]
+        pred_prob = round(pred_probs[i], 2)
         if _class in PREDICTION_NAMES:
             if distinct:
                 rgb_mask = get_distinct_mask(mask, _class)
             else:
                 rgb_mask = get_coloured_mask(mask)
+            title = f'{_class},{str(pred_prob)}'
             img = cv2.addWeighted(img, 1, rgb_mask, 0.7, 0)
             cv2.rectangle(img, box[0], box[1],color=(0, 255, 0), thickness=rect_th)
-            cv2.putText(img, _class, box[0], cv2.FONT_HERSHEY_SIMPLEX, text_size, (0,255,0),thickness=text_th)
+            cv2.putText(img, title, box[0], cv2.FONT_HERSHEY_SIMPLEX, text_size, (0,255,0),thickness=text_th)
     plt.figure(figsize=(20,30))
     plt.imshow(img)
     plt.xticks([])
@@ -159,7 +162,6 @@ def segment_instance(model, input_path, output_path, confidence=0.9, rect_th=2, 
     # plt.show()
     if store:
         plt.savefig(output_path)
-
 
 
 def main():
@@ -197,6 +199,8 @@ def main():
     print(f'that took {duration} seconds for {cnt} image')
 
     let_it_roll(output_files)
+
+
 
 if __name__ == '__main__':
     main()
