@@ -125,7 +125,7 @@ def let_it_roll(path):
     pass
 
 
-def segment_instance(model, input_path, output_path, confidence=0.9, rect_th=2, text_size=2, text_th=2, 
+def segment_instance(model, input_path, output_path, confidence=0.9, rect_th=2, text_size=1, text_th=2, 
                         store=True, distinct=True):
     """
     image_path: ...
@@ -154,7 +154,8 @@ def segment_instance(model, input_path, output_path, confidence=0.9, rect_th=2, 
             title = f'{_class},{str(pred_prob)}'
             img = cv2.addWeighted(img, 1, rgb_mask, 0.7, 0)
             cv2.rectangle(img, box[0], box[1],color=(0, 255, 0), thickness=rect_th)
-            cv2.putText(img, title, box[0], cv2.FONT_HERSHEY_SIMPLEX, text_size, (0,255,0),thickness=text_th)
+            cv2.putText(img=img, text=title, org=box[0], fontFace=cv2.FONT_HERSHEY_SIMPLEX, 
+                        fontScale=text_size, color=(255, 255, 255), thickness=text_th)
     plt.figure(figsize=(20,30))
     plt.imshow(img)
     plt.xticks([])
