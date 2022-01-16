@@ -1,5 +1,5 @@
 """
-code taken from tutorial:
+some code taken from tutorial:
 https://haochen23.github.io/2020/05/instance-segmentation-mask-rcnn.html#.Ydhsy3XML
 """
 
